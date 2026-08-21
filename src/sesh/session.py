@@ -301,7 +301,7 @@ if __name__ == "__main__":
         )
 
         # 5. Metric streaming loop
-        # Sequentially prints to the terminal console, logs to file, 
+        # Sequentially prints to the terminal console, logs to file,
         # and updates MLflow real-time graphs
         session.info(
             "Commencing execution showcase pipeline step 3: Training emulation loops."
