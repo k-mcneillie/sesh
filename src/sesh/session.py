@@ -6,13 +6,14 @@ from typing import Any
 
 import torch
 
-from .logger import configure_logger
-from .seed import set_seed
 from .cards.dataset import DatasetCard
 from .cards.model import ModelCard
+from .logger import configure_logger
+from .seed import set_seed
 
 try:
     import mlflow
+
     HAS_MLFLOW = True
 except ImportError:
     HAS_MLFLOW = False
@@ -54,16 +55,16 @@ class Session:
         self.name = name
         self.seed = seed
         self.device = str(torch.device(device))
-        
+
         # Resolve unified output directory with incremental collision handling
         base_dir = output_root / f"{timestamp}_{name}"
         counter = 0
         self.output_dir = base_dir
-        
+
         while self.output_dir.exists():
             counter += 1
             self.output_dir = Path(f"{base_dir}_{counter}")
-            
+
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialise the underlying text logger encapsulated within the session
@@ -77,26 +78,33 @@ class Session:
 
         self._logger.info(f"Experiment session: {self.name} initialised.")
         self._logger.info(f"Seeding engine completed using base reference: {seed}")
-        self._logger.info(f"Local workflow runtime tracking directed to: {self.output_dir}")
+        self._logger.info(
+            f"Local workflow runtime tracking directed to: {self.output_dir}"
+        )
 
         # Configure background MLflow tracking parameters securely
         self._use_mlflow = HAS_MLFLOW and enable_mlflow
         if self._use_mlflow:
-            # Bound MLflow data strictly within the local session directory to prevent clutter
+            # Bound MLflow data strictly within the local session directory to prevent
+            # clutter
             local_mlrun_uri = f"file://{self.output_dir.resolve()}/mlruns"
             mlflow.set_tracking_uri(local_mlrun_uri)
-            
+
             mlflow.set_experiment(self.name)
             self._mlflow_run = mlflow.start_run(run_name=f"{timestamp}_{name}")
-            
+
             # Log structural baseline parameters instantly
-            mlflow.log_params({
-                "session_seed": self.seed,
-                "session_device": self.device,
-                "deterministic_seed": deterministic_seed,
-            })
+            mlflow.log_params(
+                {
+                    "session_seed": self.seed,
+                    "session_device": self.device,
+                    "deterministic_seed": deterministic_seed,
+                }
+            )
         elif enable_mlflow and not HAS_MLFLOW:
-            self._logger.warning("MLflow tracking requested, but package is missing from environment.")
+            self._logger.warning(
+                "MLflow tracking requested, but package is missing from environment."
+            )
 
     def __enter__(self) -> Session:
         """Enable contextual resource wrapping via the 'with' statement layout."""
@@ -104,18 +112,20 @@ class Session:
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """
-        Automatically close logging conduits and disconnect active backend MLflow tracks."""
+        Automatically close logging conduits and disconnect active backend MLflow
+        tracks.
+        """
         if exc_type is not None:
             self._logger.error(
-                f"Execution boundary broken by exception: {exc_val}", 
-                exc_info=(exc_type, exc_val, exc_tb)
+                f"Execution boundary broken by exception: {exc_val}",
+                exc_info=(exc_type, exc_val, exc_tb),
             )
             if self._use_mlflow:
                 mlflow.end_run(status="FAILED")
         else:
             if self._use_mlflow:
                 mlflow.end_run(status="FINISHED")
-                
+
         self._logger.info("Session workspace locked cleanly.")
 
     def path(self, *parts: str | Path) -> Path:
@@ -151,12 +161,12 @@ class Session:
         """
         step_prefix = f"[Step {step:04d}] " if step is not None else ""
         metric_elements = [
-            f"{name}: {value:.5f}" if isinstance(value, float) else f"{name}: {value}" 
+            f"{name}: {value:.5f}" if isinstance(value, float) else f"{name}: {value}"
             for name, value in metrics.items()
         ]
-        
+
         self._logger.info(f"{step_prefix}" + " | ".join(metric_elements))
-        
+
         if self._use_mlflow:
             mlflow.log_metrics(metrics, step=step)
 
@@ -177,7 +187,7 @@ class Session:
         name: str,
         parameters: dict[str, Any],
         description: str | tuple[str] | list[str],
-        sub_folder: str = "data_artifacts"
+        sub_folder: str = "data_artifacts",
     ) -> None:
         """
         Mint a DatasetCard and automatically mirror the structural fields to MLflow.
@@ -189,7 +199,7 @@ class Session:
             sub_folder: Target subdirectory inside the session directory.
         """
         target_dir = self.path(sub_folder)
-        
+
         card = DatasetCard(
             name=name,
             parameters=parameters,
@@ -199,10 +209,12 @@ class Session:
         )
         card.save(target_dir)
         self._logger.info(f"Dataset card artifact serialised to: {target_dir}")
-        
+
         if self._use_mlflow:
             mlflow.log_params({f"data_{k}": v for k, v in parameters.items()})
-            mlflow.log_artifact(str(target_dir / "dataset_card.md"), artifact_path=sub_folder)
+            mlflow.log_artifact(
+                str(target_dir / "dataset_card.md"), artifact_path=sub_folder
+            )
 
     def log_model_card(
         self,
@@ -214,7 +226,7 @@ class Session:
         limitations: list[str],
         training_metadata: dict[str, Any] | None = None,
         description: str | tuple[str] | list[str] = "",
-        sub_folder: str = "model_artifacts"
+        sub_folder: str = "model_artifacts",
     ) -> None:
         """Mint a ModelCard and automatically mirror the structural fields to MLflow.
 
@@ -223,8 +235,8 @@ class Session:
             architecture: Class structural string name of the network framework.
             parameters: Key-value hyperparameters of model structure.
             intended_use: Planned list contexts for model usage.
-            limitations: Known parameters under which model calculation accuracy degrades.
-            training_metadata: Final loss figures, epochs, or computational performance markers.
+            limitations: Known parameters under which model accuracy degrades.
+            training_metadata: Final loss figures, epochs, or performance markers.
             description: Informational textual summary text blocks.
             sub_folder: Target subdirectory inside the session directory.
         """
@@ -242,7 +254,7 @@ class Session:
         )
         saved_path = card.save(target_dir)
         self._logger.info(f"Model card artifact serialised to: {saved_path}")
-        
+
         if self._use_mlflow:
             mlflow.log_params({f"model_{k}": v for k, v in parameters.items()})
             mlflow.log_params({f"train_{k}": v for k, v in full_training_meta.items()})
@@ -252,62 +264,84 @@ class Session:
 
 if __name__ == "__main__":
     print("=== Showcasing Complete Integrated Public Session API ===")
-    
+
     # 1. Pipeline initialisation context block
-    # This automatically provisions the directory, configures loggers, sets deterministic seeds,
+    # Provisions the directory, configures loggers, sets deterministic seeds,
     # and safely sets up isolated internal MLflow tracks under the hood.
     target_hardware = "cuda" if torch.cuda.is_available() else "cpu"
-    
-    with Session(name="comprehensive_scientific_run", seed=8888, device=target_hardware) as session:
-        
+
+    with Session(
+        name="comprehensive_scientific_run", seed=8888, device=target_hardware
+    ) as session:
         # 2. Plain-text information logging via the public wrapper shortcut
         session.info("Commencing execution showcase pipeline step 1: Setup validation.")
-        
+
         # 3. Parameter logging
-        # Synchronises configurations effortlessly across local run.log files and the MLflow instance
-        session.log_params({
-            "learning_rate_initial": 0.0005,
-            "weight_decay_coefficient": 1e-4,
-            "dataset_split_ratio": [0.8, 0.1, 0.1]
-        })
-        
+        # Synchronises configurations effortlessly across local run.log files
+        # and the MLflow instance
+        session.log_params(
+            {
+                "learning_rate_initial": 0.0005,
+                "weight_decay_coefficient": 1e-4,
+                "dataset_split_ratio": [0.8, 0.1, 0.1],
+            }
+        )
+
         # 4. Dataset Card generation
-        # Generates structured documentation and registers parameters directly into active session space
+        # Generates structured documentation and registers parameters directly
+        # into active session space
         session.info("Commencing execution showcase pipeline step 2: Data synthesis.")
         session.log_dataset_card(
             name="GaussianNoiseFieldSynthesiser",
             parameters={"spatial_resolution": 2048, "noise_floor_db": -60.0},
             description=[
                 "High-resolution synthetic validation grid.",
-                "Generated to evaluate convergence performance under extreme boundary conditions."
-            ]
+                "Generated to evaluate convergence under extreme boundary conditions.",
+            ],
         )
-        
+
         # 5. Metric streaming loop
-        # Sequentially prints to the terminal console, logs to file, and updates MLflow real-time graphs
-        session.info("Commencing execution showcase pipeline step 3: Training emulation loops.")
+        # Sequentially prints to the terminal console, logs to file, 
+        # and updates MLflow real-time graphs
+        session.info(
+            "Commencing execution showcase pipeline step 3: Training emulation loops."
+        )
         for epoch in range(1, 4):
-            simulated_loss = 0.85 / (epoch ** 0.5)
+            simulated_loss = 0.85 / (epoch**0.5)
             simulated_metric = 0.72 + (0.06 * epoch)
-            
+
             session.log_metrics(
-                metrics={"objective_loss": simulated_loss, "validation_accuracy": simulated_metric}, 
-                step=epoch
+                metrics={
+                    "objective_loss": simulated_loss,
+                    "validation_accuracy": simulated_metric,
+                },
+                step=epoch,
             )
-            
+
         # 6. Model Card generation
-        # Finalises documentation, packages metadata, and links absolute environment tracking states
-        session.info("Commencing execution showcase pipeline step 4: Model preservation tracking.")
+        # Finalises documentation, packages metadata, and links absolute environment
+        # tracking states
+        session.info(
+            "Commencing execution pipeline step 4: Model preservation tracking."
+        )
         session.log_model_card(
             name="AnomalyClassifierNet",
             architecture="ResNetBackbone_S3",
             parameters={"hidden_channels": 256, "dropout_probability": 0.3},
-            intended_use=["Predictive anomaly classification within non-uniform tensor grids."],
-            limitations=["Degrades rapidly when processing input domains outside trained bounds."],
+            intended_use=[
+                "Predictive anomaly classification within non-uniform tensor grids."
+            ],
+            limitations=[
+                "Degrades rapidly when processing input domains outside trained bounds."
+            ],
             training_metadata={"epochs_executed": 3, "optimal_loss_attained": 0.490},
-            description="Trained classification model optimised for structural matrix parsing."
+            description="Trained model optimised for structural matrix parsing.",
         )
 
-    # Context manager automatically triggers clean resource cleanup and finalises connections
-    print(f"\nExecution loop finalised successfully. Review all local run outputs at: {session.output_dir}")
+    # Context manager automatically triggers clean resource cleanup
+    # and finalises connections
+    print(
+        "\nExecution loop finalised successfully. "
+        + f"Review all local run outputs at: {session.output_dir}"
+    )
     print("=== Showcasing Completed ===")

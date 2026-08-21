@@ -37,7 +37,7 @@ def configure_logger(
     log_file.parent.mkdir(parents=True, exist_ok=True)
 
     logger = logging.getLogger(name)
-    
+
     # Establish the lowest baseline level required to capture all handlers
     logger.setLevel(min(console_level, file_level))
     logger.propagate = False
@@ -67,7 +67,7 @@ def configure_logger(
 if __name__ == "__main__":
     # Define a local execution path for demonstration
     example_log_path = Path("results/logs/pipeline.log")
-    
+
     # Initialize the project logger
     # Terminal will only show INFO and above, file will capture DEBUG traces
     log = configure_logger(
@@ -76,26 +76,26 @@ if __name__ == "__main__":
         console_level=logging.INFO,
         file_level=logging.DEBUG,
     )
-    
+
     print(f"--- Demonstration Started (Writing logs to {example_log_path}) ---")
-    
+
     # 1. This will appear BOTH in the terminal and in the log file
     log.info("Initializing scientific execution pipeline...")
-    
+
     # 2. This will ONLY appear in the file (terminal filters it out)
     log.debug("Hyperparameters set: learning_rate=0.001, batch_size=32, seed=42")
-    
+
     try:
         # Simulate a processing step
         log.info("Loading dataset matrix...")
         log.debug("Memory allocation for matrix: 450MB")
-        
+
         # Simulate a handled anomaly/warning
         log.warning("Matrix dimensions are non-square. Forcing fallback solver.")
-        
+
         # Simulate an exception block
         raise ValueError("Convergence criteria failed after 1000 iterations.")
-        
+
     except Exception as error:
         # Captures the full error traceback cleanly inside the logs
         log.error(f"Pipeline execution halted: {error}", exc_info=True)

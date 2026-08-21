@@ -6,7 +6,6 @@
 # =============================
 from __future__ import annotations
 
-
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +26,9 @@ class ModelCard:
     ) -> None:
         """Initialise a model card."""
         self.name = name
-        self.description = [description] if isinstance(description, str) else list(description)
+        self.description = (
+            [description] if isinstance(description, str) else list(description)
+        )
         self.architecture = architecture
         self.parameters = parameters
         self.intended_use = intended_use
@@ -69,19 +70,21 @@ class ModelCard:
         for name, value in self.parameters.items():
             lines.append(f"- `{name}`: `{value}`")
 
-        lines.extend([
-            "",
-            "## Intended Use",
-            "",
-            *[f"- {item}" for item in self.intended_use],
-            "",
-            "## Limitations",
-            "",
-            *[f"- {item}" for item in self.limitations],
-            "",
-            "## Training",
-            "",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Intended Use",
+                "",
+                *[f"- {item}" for item in self.intended_use],
+                "",
+                "## Limitations",
+                "",
+                *[f"- {item}" for item in self.limitations],
+                "",
+                "## Training",
+                "",
+            ]
+        )
 
         for name, value in self.training.items():
             lines.append(f"- `{name}`: `{value}`")
