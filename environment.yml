@@ -1,4 +1,4 @@
-name: example-env
+name: session-env
 channels:
   - conda-forge
   - defaults
@@ -11,6 +11,13 @@ dependencies:
   - pandas
   - scikit-learn
   - matplotlib
+
+  - mlflow
+
+  - pytest
+  - pytest-cov
+  - ruff
+  - mypy
   
   # Development & Repo Tooling
   - pip
