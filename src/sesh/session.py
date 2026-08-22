@@ -139,7 +139,7 @@ class Session:
             The combined and absolute Path object pointing inside the session directory.
         """
         resolved_path = Path(self.output_dir, *parts)
-        resolved_path.parent.mkdir(parents=True, exist_ok=True)
+        resolved_path.mkdir(parents=True, exist_ok=True)
         return resolved_path
 
     def info(self, msg: str) -> None:
