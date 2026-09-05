@@ -10,7 +10,7 @@ DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 def configure_logger(
     name: str,
-    log_file: Path,
+    log_file: Path | None,
     *,
     console_level: int = logging.INFO,
     file_level: int = logging.DEBUG,
@@ -21,7 +21,8 @@ def configure_logger(
 
     Args:
         name: Name of the logger.
-        log_file: Path to the destination log file.
+        log_file: Path to the destination log file, or None to skip file
+            logging entirely and only attach a console handler.
         console_level: Logging level for the standard output stream.
         file_level: Logging level for the persistent log file.
         log_format: Structured pattern for log messages.
@@ -33,8 +34,9 @@ def configure_logger(
     Raises:
         OSError: If the parent directory of log_file cannot be created.
     """
-    # Ensure directory shell exists locally
-    log_file.parent.mkdir(parents=True, exist_ok=True)
+    if log_file is not None:
+        # Ensure directory shell exists locally
+        log_file.parent.mkdir(parents=True, exist_ok=True)
 
     logger = logging.getLogger(name)
 
@@ -56,10 +58,11 @@ def configure_logger(
     logger.addHandler(console_handler)
 
     # File Handler: Captures granular parameters or debug traces
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(file_level)
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    if log_file is not None:
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setLevel(file_level)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
     return logger
 
