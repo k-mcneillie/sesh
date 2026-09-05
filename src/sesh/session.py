@@ -54,6 +54,7 @@ class Session:
         deterministic_seed: bool = True,
         enable_mlflow: bool = True,
         mlflow_tracking_uri: str | None = None,
+        no_log: bool = False,
     ) -> None:
         """
         Initialise and align local outputs, logging streams, and MLflow targets.
@@ -68,41 +69,55 @@ class Session:
             mlflow_tracking_uri: Optional explicit MLflow tracking URI (e.g. a
                 shared team server). If omitted, defaults to a SQLite store
                 scoped inside this session's own output directory.
+            no_log: If True, skip creating an output directory, run.log file,
+                and MLflow run entirely - only console logging remains.
+                Intended for quick, one-off sessions with no disk footprint.
         """
         timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
         self.name = name
         self.seed = seed
         self.device = _resolve_device(device)
+        self.no_log = no_log
 
-        # Resolve unified output directory with incremental collision handling
-        base_dir = output_root / f"{timestamp}_{name}"
-        counter = 0
-        self.output_dir = base_dir
+        self.output_dir: Path | None = None
+        log_file: Path | None = None
 
-        while self.output_dir.exists():
-            counter += 1
-            self.output_dir = Path(f"{base_dir}_{counter}")
+        if not no_log:
+            # Resolve unified output directory with incremental collision handling
+            base_dir = output_root / f"{timestamp}_{name}"
+            counter = 0
+            self.output_dir = base_dir
 
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+            while self.output_dir.exists():
+                counter += 1
+                self.output_dir = Path(f"{base_dir}_{counter}")
+
+            self.output_dir.mkdir(parents=True, exist_ok=True)
+            log_file = self.output_dir / "run.log"
 
         # Initialise the underlying text logger encapsulated within the session
-        self._logger = configure_logger(
-            name=name,
-            log_file=self.output_dir / "run.log",
-        )
+        self._logger = configure_logger(name=name, log_file=log_file)
 
         # Enforce multi-engine reproducibility conditions via the seed package
         set_seed(seed, deterministic=deterministic_seed)
 
         self._logger.info(f"Experiment session: {self.name} initialised.")
         self._logger.info(f"Seeding engine completed using base reference: {seed}")
-        self._logger.info(
-            f"Local workflow runtime tracking directed to: {self.output_dir}"
-        )
+        if self.output_dir is not None:
+            self._logger.info(
+                f"Local workflow runtime tracking directed to: {self.output_dir}"
+            )
+
+        if no_log and enable_mlflow:
+            self._logger.warning(
+                "no_log=True disables MLflow tracking for this session."
+            )
+            enable_mlflow = False
 
         # Configure background MLflow tracking parameters securely
         self._use_mlflow = HAS_MLFLOW and enable_mlflow
         if self._use_mlflow:
+            assert self.output_dir is not None  # guaranteed: no_log disabled mlflow
             artifact_location: str | None = None
             if mlflow_tracking_uri is not None:
                 tracking_uri = mlflow_tracking_uri
@@ -170,7 +185,16 @@ class Session:
 
         Returns:
             The combined and absolute Path object pointing inside the session directory.
+
+        Raises:
+            RuntimeError: If the session was created with no_log=True, since no
+                persistent output directory exists to resolve a path within.
         """
+        if self.output_dir is None:
+            raise RuntimeError(
+                "Session was created with no_log=True; no output directory is "
+                "available."
+            )
         resolved_path = Path(self.output_dir, *parts)
         resolved_path.mkdir(parents=True, exist_ok=True)
         return resolved_path
@@ -226,10 +250,13 @@ class Session:
         Mint a DatasetCard and automatically mirror the structural fields to MLflow.
 
         Args:
-            generator: Name of the dataset generator algorithm.
+            name: Name of the dataset or generator algorithm.
             parameters: Data configurations or pipeline weights used.
             description: Summary details detailing data features or criteria.
             sub_folder: Target subdirectory inside the session directory.
+
+        Raises:
+            RuntimeError: If the session was created with no_log=True.
         """
         target_dir = self.path(sub_folder)
 
@@ -270,6 +297,9 @@ class Session:
             training_metadata: Final loss figures, epochs, or performance markers.
             description: Informational textual summary text blocks.
             sub_folder: Target subdirectory inside the session directory.
+
+        Raises:
+            RuntimeError: If the session was created with no_log=True.
         """
         target_dir = self.path(sub_folder)
         full_training_meta = training_metadata.copy() if training_metadata else {}
