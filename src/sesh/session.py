@@ -208,6 +208,33 @@ class Session:
         """
         self._logger.info(msg)
 
+    def debug(self, msg: str) -> None:
+        """
+        Log a debug-level message, useful for granular tracing during development.
+
+        Args:
+            msg: The textual message string to record.
+        """
+        self._logger.debug(msg)
+
+    def warning(self, msg: str) -> None:
+        """
+        Log a warning-level message for a non-fatal but noteworthy condition.
+
+        Args:
+            msg: The textual message string to record.
+        """
+        self._logger.warning(msg)
+
+    def error(self, msg: str) -> None:
+        """
+        Log an error-level message for a failure that doesn't stop the session.
+
+        Args:
+            msg: The textual message string to record.
+        """
+        self._logger.error(msg)
+
     def log_metrics(self, metrics: dict[str, float], step: int | None = None) -> None:
         """
         Record numerical metrics across terminal console targets and MLflow dashboards.
