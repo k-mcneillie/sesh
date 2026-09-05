@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -52,6 +53,7 @@ class Session:
         output_root: Path = DEFAULT_OUTPUT_ROOT,
         deterministic_seed: bool = True,
         enable_mlflow: bool = True,
+        mlflow_tracking_uri: str | None = None,
     ) -> None:
         """
         Initialise and align local outputs, logging streams, and MLflow targets.
@@ -63,6 +65,9 @@ class Session:
             output_root: Root directory path where session outputs are written.
             deterministic_seed: If True, forces strict hardware algorithm determinism.
             enable_mlflow: If True, activates parallel background server tracking.
+            mlflow_tracking_uri: Optional explicit MLflow tracking URI (e.g. a
+                shared team server). If omitted, defaults to a SQLite store
+                scoped inside this session's own output directory.
         """
         timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
         self.name = name
@@ -98,10 +103,25 @@ class Session:
         # Configure background MLflow tracking parameters securely
         self._use_mlflow = HAS_MLFLOW and enable_mlflow
         if self._use_mlflow:
-            # Bound MLflow data strictly within the local session directory to prevent
-            # clutter
-            local_mlrun_uri = f"file://{self.output_dir.resolve()}/mlruns"
-            mlflow.set_tracking_uri(local_mlrun_uri)
+            artifact_location: str | None = None
+            if mlflow_tracking_uri is not None:
+                tracking_uri = mlflow_tracking_uri
+            else:
+                # MLflow's file-based tracking store is in maintenance mode and
+                # can raise MlflowException, so default to a per-session SQLite
+                # store instead, keeping artifacts scoped inside this session's
+                # own directory.
+                tracking_uri = f"sqlite:///{(self.output_dir / 'mlflow.db').resolve()}"
+                artifact_location = (self.output_dir / "mlruns").resolve().as_uri()
+
+            mlflow.set_tracking_uri(tracking_uri)
+
+            if artifact_location is not None:
+                with contextlib.suppress(mlflow.MlflowException):
+                    # Raises if the experiment already exists in this store.
+                    mlflow.create_experiment(
+                        self.name, artifact_location=artifact_location
+                    )
 
             mlflow.set_experiment(self.name)
             self._mlflow_run = mlflow.start_run(run_name=f"{timestamp}_{name}")
