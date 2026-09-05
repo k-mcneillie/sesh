@@ -81,6 +81,34 @@ def test_info_writes_to_the_log_file(tmp_path: Path) -> None:
     assert "a plain info message" in log_text
 
 
+def test_debug_warning_error_write_to_the_log_file(tmp_path: Path) -> None:
+    with Session(name="log-levels-test", output_root=tmp_path) as session:
+        session.debug("a debug trace")
+        session.warning("a warning condition")
+        session.error("a non-fatal error")
+
+    log_text = (session.output_dir / "run.log").read_text(encoding="utf-8")
+    assert "a debug trace" in log_text
+    assert "a warning condition" in log_text
+    assert "a non-fatal error" in log_text
+
+
+def test_debug_is_filtered_from_console_but_warning_and_error_are_not(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    # configure_logger's default console level is INFO, so debug messages
+    # should reach the file (checked above) but not stderr.
+    with Session(name="log-levels-console-test", no_log=True) as session:
+        session.debug("should not reach the console")
+        session.warning("should reach the console")
+        session.error("should also reach the console")
+
+    stderr = capsys.readouterr().err
+    assert "should not reach the console" not in stderr
+    assert "should reach the console" in stderr
+    assert "should also reach the console" in stderr
+
+
 def test_log_metrics_with_and_without_step(tmp_path: Path) -> None:
     with Session(name="metrics-test", output_root=tmp_path) as session:
         session.log_metrics({"loss": 0.5}, step=3)
