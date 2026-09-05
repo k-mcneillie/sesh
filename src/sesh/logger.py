@@ -69,7 +69,7 @@ def configure_logger(
 
 if __name__ == "__main__":
     # Define a local execution path for demonstration
-    example_log_path = Path("results/logs/pipeline.log")
+    example_log_path = Path("outputs/demo/pipeline.log")
 
     # Initialize the project logger
     # Terminal will only show INFO and above, file will capture DEBUG traces
