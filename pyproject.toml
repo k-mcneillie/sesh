@@ -51,15 +51,19 @@ sesh = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = "-ra --strict-markers --cov=research_session --cov-report=term-missing"
+addopts = "-ra --strict-markers --cov=sesh --cov-report=term-missing"
 
 [tool.coverage.run]
-source = ["research_session"]
+source = ["sesh"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]
 
 [tool.mypy]
 python_version = "3.12"
