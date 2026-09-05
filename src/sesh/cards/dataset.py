@@ -10,6 +10,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from ._util import slugify, unique_path
+
 
 # =============================
 # Dataset Card
@@ -42,15 +44,24 @@ class DatasetCard:
         self.device = device
         self.description = description
 
-    def save(self, output_dir: Path) -> None:
+    def save(self, output_dir: Path) -> tuple[Path, Path]:
         """
         Save the dataset card and generation configuration.
 
         Args:
             output_dir: Directory in which the files should be saved.
+
+        Returns:
+            A tuple of ``(markdown_path, config_path)`` pointing to the
+            saved files.
         """
-        self._save_markdown(output_dir / "dataset_card.md")
-        self._save_config(output_dir / "dataset_config.json")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        slug = slugify(self.name)
+        markdown_path = unique_path(output_dir, f"dataset_card_{slug}", ".md")
+        config_path = unique_path(output_dir, f"dataset_config_{slug}", ".json")
+        self._save_markdown(markdown_path)
+        self._save_config(config_path)
+        return markdown_path, config_path
 
     def _save_markdown(self, path: Path) -> None:
         """

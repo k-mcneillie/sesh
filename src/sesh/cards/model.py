@@ -9,6 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from ._util import slugify, unique_path
+
 
 class ModelCard:
     """Human-readable documentation for a trained model."""
@@ -45,7 +47,7 @@ class ModelCard:
             Path to the saved model card.
         """
         output_dir.mkdir(parents=True, exist_ok=True)
-        path = output_dir / "model_card.md"
+        path = unique_path(output_dir, f"model_card_{slugify(self.name)}", ".md")
         self._save_markdown(path)
         return path
 

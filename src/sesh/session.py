@@ -207,14 +207,12 @@ class Session:
             device=self.device,
             description=description,
         )
-        card.save(target_dir)
-        self._logger.info(f"Dataset card artifact serialised to: {target_dir}")
+        markdown_path, _config_path = card.save(target_dir)
+        self._logger.info(f"Dataset card artifact serialised to: {markdown_path}")
 
         if self._use_mlflow:
             mlflow.log_params({f"data_{k}": v for k, v in parameters.items()})
-            mlflow.log_artifact(
-                str(target_dir / "dataset_card.md"), artifact_path=sub_folder
-            )
+            mlflow.log_artifact(str(markdown_path), artifact_path=sub_folder)
 
     def log_model_card(
         self,
@@ -248,7 +246,7 @@ class Session:
             description=description,
             architecture=architecture,
             parameters=parameters,
-            intended_use=allowed_use if (allowed_use := intended_use) else [],
+            intended_use=intended_use or [],
             limitations=limitations,
             training=full_training_meta,
         )
