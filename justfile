@@ -25,6 +25,11 @@ format:
 type-check:
     mypy src/
 
+# Run static (Bandit) and dependency (pip-audit) security scans
+security:
+    bandit -r src -ll
+    pip-audit
+
 # Clean up temporary build artifacts, packaging caches, and test artifacts
 clean:
     rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov dist build src/*.egg-info
