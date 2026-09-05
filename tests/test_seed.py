@@ -51,3 +51,16 @@ def test_set_seed_seeds_torch_when_installed() -> None:
     second = torch.rand(3)
 
     assert torch.equal(first, second)
+
+
+@pytest.mark.skipif(not seed_module.HAS_TORCH, reason="torch not installed")
+def test_set_seed_non_deterministic_mode_configures_cudnn_flags() -> None:
+    import torch
+
+    set_seed(1, deterministic=False)
+
+    assert torch.backends.cudnn.deterministic is False
+    assert torch.backends.cudnn.benchmark is True
+
+    # Restore deterministic mode so it doesn't leak into other tests.
+    set_seed(1, deterministic=True)
