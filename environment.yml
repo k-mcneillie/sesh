@@ -3,25 +3,10 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.11
-  
-  # Core Scientific Stack
-  - numpy
-  - scipy
-  - pandas
-  - scikit-learn
-  - matplotlib
-
-  - mlflow
-
-  - pytest
-  - pytest-cov
-  - ruff
-  - mypy
-  
-  # Development & Repo Tooling
+  - python=3.12
   - pip
-  
+
   # Python Toolchain Packages (Managed via pip to match your dev flags)
   - pip:
-    - -e .[dev]   # Installs your project in editable mode with dev tools (ruff, mypy, pytest)
+    - -e .[dev]   # Installs sesh in editable mode with the numpy/torch/mlflow
+                  # extras and dev tools (ruff, mypy, pytest)
