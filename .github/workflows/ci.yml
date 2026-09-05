@@ -43,3 +43,51 @@ jobs:
       - name: Run Tests with Coverage (Pytest)
         run: |
           pytest
+
+  test-minimal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install core package only (no numpy/torch/mlflow)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .[dev-min]
+
+      - name: Run core-only smoke tests
+        run: |
+          pytest tests/test_minimal_install.py -v
+
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install .[security]
+
+      - name: Static security scan (Bandit)
+        run: |
+          bandit -r src -ll
+
+      - name: Dependency vulnerability scan (pip-audit)
+        run: |
+          pip-audit
