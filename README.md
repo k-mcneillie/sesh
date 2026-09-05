@@ -80,7 +80,8 @@ into.
 
 - `Session(name, *, seed=42, device="cpu", output_root=Path("outputs"), deterministic_seed=True, enable_mlflow=True, mlflow_tracking_uri=None, no_log=False)`
 - `session.path(*parts)` - resolve (and create) a path inside the session's output directory
-- `session.info(msg)` / `session.log_metrics(metrics, step=None)` / `session.log_params(params)`
+- `session.info(msg)` / `session.debug(msg)` / `session.warning(msg)` / `session.error(msg)` - the full logging interface, all writing to the same `run.log`
+- `session.log_metrics(metrics, step=None)` / `session.log_params(params)`
 - `session.log_dataset_card(...)` / `session.log_model_card(...)` - mint Markdown (+ JSON, for datasets) documentation cards; minting the same or a different name multiple times in one session never overwrites a previous card
 - Used as a context manager: MLflow runs and log handlers are closed cleanly on exit, including when the `with` block raises
 

@@ -34,6 +34,9 @@
   console logging only, no output directory, no MLflow run (#10).
 - `Session(..., mlflow_tracking_uri=...)` to point at a shared/remote MLflow
   server instead of the per-session SQLite default.
+- `session.debug()`, `session.warning()`, and `session.error()`, alongside
+  the existing `session.info()`, so the full logging interface is available
+  without reaching into the private `_logger` attribute.
 - CI: a `security-scan` job (Bandit + pip-audit) and a `test-minimal` job
   that verifies the core package works with none of the optional
   dependencies installed (#3).
