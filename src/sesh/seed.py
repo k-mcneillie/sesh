@@ -36,7 +36,7 @@ def set_seed(seed: int, *, deterministic: bool = True) -> None:
     # 3. PyTorch CPU/GPU engine and determinism flags, if installed
     if HAS_TORCH:
         torch.manual_seed(seed)
-        if torch.cuda.is_available():
+        if torch.cuda.is_available():  # pragma: no cover - requires a GPU
             torch.cuda.manual_seed(seed)
             torch.cuda.manual_seed_all(seed)
 
