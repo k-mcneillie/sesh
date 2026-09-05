@@ -4,22 +4,35 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import torch
-
+from ._optional import HAS_MLFLOW, HAS_TORCH
 from .cards.dataset import DatasetCard
 from .cards.model import ModelCard
 from .logger import configure_logger
 from .seed import set_seed
 
-try:
-    import mlflow
+if HAS_TORCH:
+    import torch
 
-    HAS_MLFLOW = True
-except ImportError:
-    HAS_MLFLOW = False
+if HAS_MLFLOW:
+    import mlflow
 
 DEFAULT_OUTPUT_ROOT = Path("outputs")
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
+
+
+def _resolve_device(device: str) -> str:
+    """Normalise a device string, using torch if it's installed.
+
+    Args:
+        device: Target hardware accelerator string (e.g., 'cpu', 'cuda').
+
+    Returns:
+        The normalised device string, e.g. torch expands 'cuda' to
+        'cuda:0'. If torch isn't installed, the input is returned as-is.
+    """
+    if HAS_TORCH:
+        return str(torch.device(device))
+    return device
 
 
 class Session:
@@ -54,7 +67,7 @@ class Session:
         timestamp = datetime.now().strftime(TIMESTAMP_FORMAT)
         self.name = name
         self.seed = seed
-        self.device = str(torch.device(device))
+        self.device = _resolve_device(device)
 
         # Resolve unified output directory with incremental collision handling
         base_dir = output_root / f"{timestamp}_{name}"
@@ -266,7 +279,7 @@ if __name__ == "__main__":
     # 1. Pipeline initialisation context block
     # Provisions the directory, configures loggers, sets deterministic seeds,
     # and safely sets up isolated internal MLflow tracks under the hood.
-    target_hardware = "cuda" if torch.cuda.is_available() else "cpu"
+    target_hardware = "cuda" if HAS_TORCH and torch.cuda.is_available() else "cpu"
 
     with Session(
         name="comprehensive_scientific_run", seed=8888, device=target_hardware
